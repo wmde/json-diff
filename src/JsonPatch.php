@@ -65,10 +65,10 @@ class JsonPatch implements \JsonSerializable
             }
 
             if (!isset($operation->op)) {
-                throw new MissingFieldException('op', $operation, 'Missing "op" in operation data');
+                throw new MissingFieldException('op', $operation);
             }
             if (!isset($operation->path)) {
-                throw new MissingFieldException('path', $operation, 'Missing "path" in operation data');
+                throw new MissingFieldException('path', $operation);
             }
 
             $op = null;
@@ -92,18 +92,18 @@ class JsonPatch implements \JsonSerializable
                     $op = new Test();
                     break;
                 default:
-                    throw new InvalidOperationException($operation, 'Invalid "op": ' . $operation->op);
+                    throw new UnknownOperationException($operation);
             }
             $op->path = $operation->path;
             if ($op instanceof OpPathValue) {
                 if (property_exists($operation, 'value')) {
                     $op->value = $operation->value;
                 } else {
-                    throw new MissingFieldException('value', $operation, 'Missing "value" in operation data');
+                    throw new MissingFieldException('value', $operation);
                 }
             } elseif ($op instanceof OpPathFrom) {
                 if (!isset($operation->from)) {
-                    throw new MissingFieldException('from', $operation, 'Missing "from" in operation data');
+                    throw new MissingFieldException('from', $operation);
                 }
                 $op->from = $operation->from;
             }

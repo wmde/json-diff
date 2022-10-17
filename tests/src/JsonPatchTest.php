@@ -7,6 +7,7 @@ use Swaggest\JsonDiff\JsonDiff;
 use Swaggest\JsonDiff\JsonPatch;
 use Swaggest\JsonDiff\MissingFieldException;
 use Swaggest\JsonDiff\PatchTestOperationFailedException;
+use Swaggest\JsonDiff\UnknownOperationException;
 
 class JsonPatchTest extends \PHPUnit_Framework_TestCase
 {
@@ -88,7 +89,7 @@ JSON;
 
     public function testInvalidOp()
     {
-        $this->setExpectedException(get_class(new Exception()), 'Invalid "op": wat');
+        $this->setExpectedException(UnknownOperationException::class, 'Unknown "op": wat');
         JsonPatch::import(array((object)array('op' => 'wat', 'path' => '/123')));
     }
 
