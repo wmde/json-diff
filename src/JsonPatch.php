@@ -61,7 +61,7 @@ class JsonPatch implements \JsonSerializable
             }
 
             if (!is_object($operation)) {
-                throw new Exception( 'Invalid patch operation - should be a JSON object' );
+                throw new Exception('Invalid patch operation - should be a JSON object');
             }
 
             if (!isset($operation->op)) {
@@ -145,32 +145,32 @@ class JsonPatch implements \JsonSerializable
         $errors = array();
         foreach ($this->operations as $operation) {
             try {
-                $pathItems = JsonPointer::splitPath($operation->path);
+                $pathItems = $this->splitPath($operation, 'path');
                 switch (true) {
                     case $operation instanceof Add:
-                        JsonPointer::add($original, $pathItems, $operation->value, $this->flags);
+                        $this->add($operation, $original, $pathItems, $operation->value);
                         break;
                     case $operation instanceof Copy:
-                        $fromItems = JsonPointer::splitPath($operation->from);
-                        $value = JsonPointer::get($original, $fromItems);
-                        JsonPointer::add($original, $pathItems, $value, $this->flags);
+                        $fromItems = $this->splitPath($operation, 'from');
+                        $value = $this->get($operation, 'from', $original, $fromItems);
+                        $this->add($operation, $original, $pathItems, $value);
                         break;
                     case $operation instanceof Move:
-                        $fromItems = JsonPointer::splitPath($operation->from);
-                        $value = JsonPointer::get($original, $fromItems);
-                        JsonPointer::remove($original, $fromItems, $this->flags);
-                        JsonPointer::add($original, $pathItems, $value, $this->flags);
+                        $fromItems = $this->splitPath($operation, 'from');
+                        $value = $this->get($operation, 'from', $original, $fromItems);
+                        $this->remove($operation, 'from', $original, $fromItems);
+                        $this->add($operation, $original, $pathItems, $value);
                         break;
                     case $operation instanceof Remove:
-                        JsonPointer::remove($original, $pathItems, $this->flags);
+                        $this->remove($operation, 'path', $original, $pathItems);
                         break;
                     case $operation instanceof Replace:
-                        JsonPointer::get($original, $pathItems);
-                        JsonPointer::remove($original, $pathItems, $this->flags);
-                        JsonPointer::add($original, $pathItems, $operation->value, $this->flags);
+                        $this->get($operation, 'path', $original, $pathItems);
+                        $this->remove($operation, 'path', $original, $pathItems);
+                        $this->add($operation, $original, $pathItems, $operation->value);
                         break;
                     case $operation instanceof Test:
-                        $value = JsonPointer::get($original, $pathItems);
+                        $value = $this->get($operation, 'path', $original, $pathItems);
                         $diff = new JsonDiff($operation->value, $value,
                             JsonDiff::STOP_ON_DIFF);
                         if ($diff->getDiffCnt() !== 0) {
@@ -188,4 +188,41 @@ class JsonPatch implements \JsonSerializable
         }
         return $errors;
     }
+
+    private function splitPath(OpPath $operation, $field)
+    {
+        try {
+            return JsonPointer::splitPath($operation->$field);
+        } catch (Exception $exception) {
+            throw new PathException($exception->getMessage(), $operation, $field, $exception->getCode());
+        }
+    }
+
+    private function add(OpPath $operation, &$original, array $pathItems, $value)
+    {
+        try {
+            JsonPointer::add($original, $pathItems, $value, $this->flags);
+        } catch (Exception $exception) {
+            throw new PathException($exception->getMessage(), $operation, 'path', $exception->getCode());
+        }
+    }
+
+    private function get(OpPath $operation, $field, $original, array $pathItems)
+    {
+        try {
+            return JsonPointer::get($original, $pathItems);
+        } catch (Exception $exception) {
+            throw new PathException($exception->getMessage(), $operation, $field, $exception->getCode());
+        }
+    }
+
+    private function remove($operation, $field, &$original, array $pathItems)
+    {
+        try {
+            JsonPointer::remove($original, $pathItems, $this->flags);
+        } catch (Exception $exception) {
+            throw new PathException($exception->getMessage(), $operation, $field, $exception->getCode());
+        }
+    }
+
 }
